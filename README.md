@@ -60,6 +60,7 @@
 | [docs/08-roadmap.md](docs/08-roadmap.md) | 4주 개발 로드맵 |
 | [docs/09-out-of-scope.md](docs/09-out-of-scope.md) | MVP 제외 항목 |
 | [docs/10-portfolio.md](docs/10-portfolio.md) | 포트폴리오 메시지 |
+| [docs/11-implementation-plan.md](docs/11-implementation-plan.md) | 구현 계획서 (디렉토리/Compose/DDL/API/서비스/Prompt/Cypher/체크리스트/DoD) |
 
 ## MVP 도메인
 
