@@ -23,6 +23,24 @@ class AnthropicProvider(LLMProvider):
     def __init__(self, api_key: str, model: str) -> None:
         self.api_key = api_key
         self.model = model
+        self.model_name = model
+
+    def answer(self, prompt: str) -> str:
+        from anthropic import Anthropic  # type: ignore
+
+        client = Anthropic(api_key=self.api_key)
+        resp = client.messages.create(
+            model=self.model,
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+        )
+        return "".join(
+            b.text for b in resp.content if getattr(b, "type", None) == "text"
+        ).strip()
+
+    def extract_intent_entities(self, question: str) -> list[str]:
+        return []
 
     def extract(self, chunk_text: str, snapshot: OntologySnapshot) -> ExtractionResponse:
         from anthropic import Anthropic  # type: ignore

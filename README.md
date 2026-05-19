@@ -316,6 +316,57 @@ MATCH p=(e:Entity {normalized_name: "FullCancelPolicy"})-[*1..2]-(n) RETURN p;
 
 `.env`에 `AUTO_GRAPH_SYNC_ON_APPROVE=true` 설정 시 approve 직후 자동 sync 트리거. 실패해도 review는 항상 성공합니다 (best-effort).
 
+### W4 실행 (GraphRAG QA + Audit)
+
+#### 1) 마이그레이션 + Prompt Seed
+
+```bash
+docker compose exec app alembic upgrade head
+docker compose exec app python -m app.seeds.prompt_seed
+```
+
+`prompt_template`에 `qa_default`, `prompt_version`에 v1 (active) 생성.
+
+#### 2) 사전 조건
+
+- W1: 문서 등록 + chunks INDEXED
+- W2: 추출 + 일부 entity/relation APPROVED
+- W3: `POST /graph/sync` 완료 (Neo4j에 노드/엣지 적재)
+
+#### 3) 질문하기
+
+```bash
+curl -X POST http://localhost:8000/qa \
+  -H 'Content-Type: application/json' \
+  -d '{"question":"배송 시작 전 결제 완료 주문은 전체 취소 가능한가?"}'
+```
+
+응답:
+```json
+{
+  "answer": "결론: 제공된 근거 기준으로 결제 완료 후 배송 시작 전에는 주문 전체 취소가 가능합니다...",
+  "graph_context": { "seed_entities": ["FullCancelPolicy", ...], "triple_count": 3 },
+  "document_evidence": { "chunk_count": 2 },
+  "query_log_id": "..."
+}
+```
+
+#### 4) 폴백 동작 확인
+
+- **근거 부족**: `{"question":"무관한 질문 입니다."}` → `"근거 부족: ..."` 답변 + 로그 저장 (LLM 호출 스킵)
+- **Vector-only**: Neo4j sync 안 된 상태에서도 vector search만으로 응답
+- **LLM 실패**: 실제 OpenAI/Anthropic provider에서 호출 실패 시 → `502 LLM_PROVIDER_FAILED` + 로그에 `error_message` 기록
+
+#### 5) QA Log 조회
+
+```bash
+curl http://localhost:8000/qa/logs
+curl 'http://localhost:8000/qa/logs?contains_question=환불'
+curl http://localhost:8000/qa/logs/{query_log_id}
+```
+
+단건 응답에는 `question / detected_entities_json / graph_context_json / retrieved_chunks_json / final_prompt / answer / token_estimate / latency_ms`가 모두 포함되어 **재현·디버깅 가능**.
+
 ### 5. 접속 정보
 
 | 서비스 | URL | 비고 |

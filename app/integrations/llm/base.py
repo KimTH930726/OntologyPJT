@@ -27,12 +27,19 @@ class OntologySnapshot:
 
 
 class LLMProvider(Protocol):
-    """Provider abstraction for entity/relation extraction.
+    """Provider abstraction for both extraction (W2) and QA (W4).
 
-    Implementations MUST return a validated ExtractionResponse. Caller is
-    responsible for further ontology validation against the snapshot.
+    ``provider_name`` is used to tag audit/log rows.
+    ``model_name`` is reported alongside (``"fake"`` for the deterministic
+    provider). ``extract`` is used at ingest time, ``answer`` and
+    ``extract_intent_entities`` at query time.
     """
 
     provider_name: str
+    model_name: str
 
     def extract(self, chunk_text: str, snapshot: OntologySnapshot) -> ExtractionResponse: ...
+
+    def answer(self, prompt: str) -> str: ...
+
+    def extract_intent_entities(self, question: str) -> list[str]: ...

@@ -185,6 +185,11 @@ class Neo4jRepository:
             return {"id": row["id"], "type": row["type"]} if row else None
 
     # ---------------- reads ----------------
+    def list_normalized_names(self) -> list[str]:
+        cypher = "MATCH (e:Entity) RETURN DISTINCT e.normalized_name AS name"
+        with self.driver.session() as sess:
+            return [row["name"] for row in sess.run(cypher) if row["name"]]
+
     def fetch_entity_view(self, normalized_name: str) -> dict[str, Any] | None:
         cypher = (
             "MATCH (e:Entity {normalized_name: $name}) "
@@ -255,6 +260,8 @@ class Neo4jRepository:
                         "type": n.get("type"),
                         "normalized_name": n.get("normalized_name"),
                         "name": n.get("name"),
+                        "chunk_id": n.get("chunk_id"),
+                        "source_document_id": n.get("source_document_id"),
                     }
                 )
             rels_out = []

@@ -23,6 +23,14 @@ class DocumentChunkRepository:
     def get(self, chunk_id: UUID) -> DocumentChunk | None:
         return self.db.get(DocumentChunk, chunk_id)
 
+    def get_many(self, chunk_ids: list[UUID]) -> list[DocumentChunk]:
+        if not chunk_ids:
+            return []
+        stmt = select(DocumentChunk).where(DocumentChunk.id.in_(chunk_ids))
+        rows = list(self.db.execute(stmt).scalars().all())
+        order = {cid: i for i, cid in enumerate(chunk_ids)}
+        return sorted(rows, key=lambda r: order.get(r.id, 1_000_000))
+
     def list_by_document(self, document_id: UUID) -> list[DocumentChunk]:
         stmt = (
             select(DocumentChunk)

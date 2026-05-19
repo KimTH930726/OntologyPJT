@@ -5,7 +5,14 @@ from typing import Any
 
 from qdrant_client import QdrantClient
 from qdrant_client.http.exceptions import UnexpectedResponse
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (
+    Distance,
+    FieldCondition,
+    Filter,
+    MatchAny,
+    PointStruct,
+    VectorParams,
+)
 
 from app.core.config import get_settings
 from app.db.qdrant import get_qdrant_client
@@ -41,6 +48,34 @@ class QdrantRepository:
             collection_name=self.collection,
             points=[PointStruct(id=point_id, vector=vector, payload=payload)],
         )
+
+    def search(
+        self,
+        vector: list[float],
+        top_k: int = 5,
+        chunk_id_in: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
+        self.ensure_collection()
+        query_filter: Filter | None = None
+        if chunk_id_in:
+            query_filter = Filter(
+                must=[FieldCondition(key="chunk_id", match=MatchAny(any=list(chunk_id_in)))]
+            )
+        try:
+            results = self.client.search(
+                collection_name=self.collection,
+                query_vector=vector,
+                query_filter=query_filter,
+                limit=top_k,
+                with_payload=True,
+            )
+        except UnexpectedResponse as e:  # pragma: no cover
+            logger.warning("qdrant search failed: %s", e)
+            return []
+        return [
+            {"id": str(p.id), "score": p.score, "payload": p.payload or {}}
+            for p in results
+        ]
 
     def get_point(self, point_id: str) -> dict[str, Any] | None:
         try:

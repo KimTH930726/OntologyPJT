@@ -22,6 +22,23 @@ class OpenAIProvider(LLMProvider):
     def __init__(self, api_key: str, model: str) -> None:
         self.api_key = api_key
         self.model = model
+        self.model_name = model
+
+    def answer(self, prompt: str) -> str:
+        from openai import OpenAI  # type: ignore
+
+        client = OpenAI(api_key=self.api_key)
+        resp = client.chat.completions.create(
+            model=self.model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+        )
+        return (resp.choices[0].message.content or "").strip()
+
+    def extract_intent_entities(self, question: str) -> list[str]:
+        # Intentionally minimal — graph retriever falls back to direct match
+        # against Neo4j names when this returns an empty list.
+        return []
 
     def extract(self, chunk_text: str, snapshot: OntologySnapshot) -> ExtractionResponse:
         # Lazy import so the package isn't required for W2.

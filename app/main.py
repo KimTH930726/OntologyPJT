@@ -12,6 +12,7 @@ from app.api.routes.extraction import router as extraction_router
 from app.api.routes.graph import router as graph_router
 from app.api.routes.health import router as health_router
 from app.api.routes.ontology import router as ontology_router
+from app.api.routes.qa import router as qa_router
 from app.api.routes.review import router as review_router
 from app.core.config import get_settings
 from app.core.logging import setup_logging
@@ -55,6 +56,7 @@ def create_app() -> FastAPI:
     app.include_router(extraction_router)
     app.include_router(review_router)
     app.include_router(graph_router)
+    app.include_router(qa_router)
     app.include_router(audit_router)
     return app
 
