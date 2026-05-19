@@ -116,6 +116,54 @@ docker compose exec app alembic revision -m "init"
 docker compose exec app alembic upgrade head
 ```
 
+### W1 실행 (문서 → Chunk → Vector)
+
+#### 1) 마이그레이션 적용
+
+```bash
+docker compose exec app alembic upgrade head
+```
+
+`document`, `document_chunk` 두 테이블이 생성됩니다.
+
+#### 2) 문서 등록
+
+```bash
+curl -X POST http://localhost:8000/documents \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "환불 정책 v1",
+    "domain": "order",
+    "source_type": "policy",
+    "version": "v1",
+    "access_level": "internal",
+    "content": "결제 완료 후 배송 시작 전에는 주문 전체 취소가 가능하다. 부분 취소는 주문상품 단위로만 가능하다. 환불 금액은 실제 결제 금액을 초과할 수 없다."
+  }'
+```
+
+응답:
+```json
+{
+  "document_id": "uuid",
+  "chunk_count": 2,
+  "vector_status": "INDEXED"
+}
+```
+
+#### 3) Chunk 조회
+
+```bash
+curl http://localhost:8000/documents/{document_id}/chunks
+curl http://localhost:8000/chunks/{chunk_id}
+```
+
+#### 4) Qdrant 확인
+
+- `http://localhost:6333/dashboard` → `document_chunks` 컬렉션
+- payload에 `chunk_id`, `document_id`, `domain`, `version`, `access_level`, `text` 포함
+
+> 중복 등록 (같은 content 재요청)은 `409 DUPLICATE_CONTENT` + 기존 `existing_document_id` 반환.
+
 ### 5. 접속 정보
 
 | 서비스 | URL | 비고 |

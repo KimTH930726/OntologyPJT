@@ -6,7 +6,10 @@ from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from app.core.config import get_settings
-from app.db.postgres import Base
+from app.db.base import Base
+
+# Importing models registers them on Base.metadata for autogenerate.
+import app.db.models  # noqa: F401
 
 config = context.config
 
@@ -16,7 +19,6 @@ if config.config_file_name is not None:
 # Load DB URL from app settings (.env)
 config.set_main_option("sqlalchemy.url", get_settings().database_url)
 
-# Import side-effects: model modules will be added in W1+. For now Base is empty.
 target_metadata = Base.metadata
 
 
