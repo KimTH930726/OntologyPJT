@@ -68,3 +68,59 @@
 
 - Entity: `Order`, `OrderItem`, `Product`, `Payment`, `Refund`, `Delivery`, `Policy`, `Condition`
 - Relation: `CONTAINS`, `PAID_BY`, `REFUNDS`, `APPLIES_TO`, `REQUIRES`, `DEFINED_IN`
+
+---
+
+## 실행 방법 (W0)
+
+### 1. 환경 변수 준비
+
+```bash
+cp .env.example .env
+```
+
+기본값으로도 동작합니다. (Postgres `ontology_user/ontology_password/ontology_rag`, Neo4j `neo4j/password`)
+
+### 2. 전체 스택 기동
+
+```bash
+docker compose up --build
+```
+
+처음 빌드는 1~3분 소요. `postgres`는 healthcheck 통과 후 `app`이 기동됩니다.
+
+### 3. Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+정상 응답:
+```json
+{
+  "status": "ok",
+  "services": { "postgres": "ok", "neo4j": "ok", "qdrant": "ok" },
+  "errors": {}
+}
+```
+
+특정 서비스가 죽어도 앱은 살아 있고 어떤 서비스가 `down`인지 표시합니다.
+
+### 4. Alembic (W1에서 첫 마이그 추가 예정)
+
+W0에서는 alembic 환경만 초기화되어 있습니다. 마이그 파일은 W1에서 작성합니다.
+
+```bash
+# 컨테이너 내부에서 새 마이그 생성 (W1 작업 시)
+docker compose exec app alembic revision -m "init"
+docker compose exec app alembic upgrade head
+```
+
+### 5. 접속 정보
+
+| 서비스 | URL | 비고 |
+|---|---|---|
+| FastAPI | http://localhost:8000 | `/docs` 자동 OpenAPI |
+| Neo4j Browser | http://localhost:7474 | user=`neo4j`, pw=`password` |
+| Qdrant | http://localhost:6333 | `/dashboard` (Qdrant Web UI) |
+| Postgres | localhost:5432 | psql client로 접속 |
