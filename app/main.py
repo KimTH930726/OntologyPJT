@@ -2,8 +2,12 @@ from __future__ import annotations
 
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api.routes.audit import router as audit_router
 from app.api.routes.chunks import router as chunks_router
@@ -43,11 +47,60 @@ async def lifespan(_: FastAPI):
         dispose_engine()
 
 
+ADMIN_STATIC_DIR = Path(__file__).resolve().parent / "static" / "admin"
+
+
+def _mount_admin(app: FastAPI) -> None:
+    """Serve the built React admin SPA at /admin (if present).
+
+    Hashed assets live under /admin/assets/*; everything else under /admin/*
+    falls back to index.html so client-side routes (e.g. /admin/candidates)
+    resolve correctly on hard refresh.
+    """
+    if not ADMIN_STATIC_DIR.is_dir() or not (ADMIN_STATIC_DIR / "index.html").is_file():
+        logger.info("admin SPA bundle not found at %s; skipping mount", ADMIN_STATIC_DIR)
+        return
+
+    assets_dir = ADMIN_STATIC_DIR / "assets"
+    if assets_dir.is_dir():
+        app.mount(
+            "/admin/assets",
+            StaticFiles(directory=str(assets_dir)),
+            name="admin-assets",
+        )
+
+    index_path = ADMIN_STATIC_DIR / "index.html"
+
+    @app.get("/admin", include_in_schema=False)
+    @app.get("/admin/", include_in_schema=False)
+    @app.get("/admin/{full_path:path}", include_in_schema=False)
+    def admin_spa(full_path: str = "") -> FileResponse:
+        # Serve a top-level static file (e.g. /admin/vite.svg) directly if it
+        # exists; otherwise hand the request to the SPA shell.
+        if full_path:
+            candidate = ADMIN_STATIC_DIR / full_path
+            if candidate.is_file() and candidate.resolve().is_relative_to(
+                ADMIN_STATIC_DIR.resolve()
+            ):
+                return FileResponse(candidate)
+        return FileResponse(index_path)
+
+    logger.info("admin SPA mounted at /admin (from %s)", ADMIN_STATIC_DIR)
+
+
 def create_app() -> FastAPI:
     app = FastAPI(
         title="Ontology-Grounded RAG Governance Platform",
         version="0.0.1",
         lifespan=lifespan,
+    )
+    # CORS — admin SPA dev server (vite) runs on :5173 and calls the API directly.
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.include_router(health_router)
     app.include_router(documents_router)
@@ -58,6 +111,14 @@ def create_app() -> FastAPI:
     app.include_router(graph_router)
     app.include_router(qa_router)
     app.include_router(audit_router)
+
+    @app.get("/", include_in_schema=False)
+    def root() -> RedirectResponse:
+        target = "/admin/" if (ADMIN_STATIC_DIR / "index.html").is_file() else "/docs"
+        return RedirectResponse(url=target)
+
+    _mount_admin(app)
+
     return app
 
 

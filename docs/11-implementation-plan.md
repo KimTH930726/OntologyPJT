@@ -78,7 +78,8 @@ OntologyPJT/
 | GraphRAG 시퀀스 | [07-query-sequence.md](07-query-sequence.md) + [`app/services/qa_service.py`](../app/services/qa_service.py) |
 | Extraction Prompt | [`app/prompts/extraction.system.j2`](../app/prompts/extraction.user.j2) |
 | QA Prompt | [`app/prompts/qa_default.j2`](../app/prompts/qa_default.j2) |
-| Admin UI 디자인 | [06-admin-ui.md](06-admin-ui.md) — **미구현**, v2 후보 |
+| Admin UI 디자인 | [06-admin-ui.md](06-admin-ui.md) |
+| Admin UI 구현 | [`admin/`](../admin/) — React + Vite + TS + Tailwind, FastAPI에 `/admin`으로 정적 마운트 |
 | MVP 제외 항목 | [09-out-of-scope.md](09-out-of-scope.md) |
 | 포트폴리오 메시지 | [10-portfolio.md](10-portfolio.md) |
 
@@ -172,7 +173,7 @@ OntologyPJT/
 | 실 OpenAI/Anthropic happy path 1회 검증 | 미수행 (Fake로만 검증) |
 | GitHub Actions CI | 미구성 (`.github/workflows/ci.yml`) |
 | testcontainers 기반 통합 테스트 | 단위/모킹만 — 실 Postgres 시나리오 1개 추가 권장 |
-| Admin UI | 미구현 — 데모/포트폴리오 임팩트 큼 |
+| Admin UI | 구현 완료 (`admin/`, 8화면, FastAPI `/admin` 정적 마운트) — UX 다듬기 v2 |
 | Extraction을 BackgroundTasks → 워커 분리 | 대용량 문서 대비 v2 |
 | Neo4j sync UNWIND batch | 1000+ entity 시점 |
 | 권한 모델 | 단일 `X-Admin-Token`, RBAC 없음 |
