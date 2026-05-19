@@ -164,6 +164,92 @@ curl http://localhost:8000/chunks/{chunk_id}
 
 > 중복 등록 (같은 content 재요청)은 `409 DUPLICATE_CONTENT` + 기존 `existing_document_id` 반환.
 
+### W2 실행 (Ontology + Extraction + Review + Audit)
+
+#### 1) 마이그레이션 적용 + 시드
+
+```bash
+docker compose exec app alembic upgrade head
+docker compose exec app python -m app.seeds.ontology_seed
+```
+
+시드 결과:
+- entity types 9종 (`Order, OrderItem, Product, Payment, Refund, Delivery, Policy, Condition, DocumentChunk`)
+- relation types 6종 (`Order CONTAINS OrderItem`, `Order PAID_BY Payment`, `Refund REFUNDS Payment`, `Policy APPLIES_TO Order`, `Policy REQUIRES Condition`, `Policy DEFINED_IN DocumentChunk`)
+
+#### 2) Ontology 확인
+
+```bash
+curl http://localhost:8000/ontology/entity-types
+curl http://localhost:8000/ontology/relation-types
+```
+
+#### 3) 추출 실행
+
+문서 등록 후 (W1 참고):
+
+```bash
+curl -X POST http://localhost:8000/documents/{document_id}/extract
+```
+
+응답:
+```json
+{
+  "document_id": "...",
+  "chunk_ids": ["..."],
+  "entities_extracted": N,
+  "relations_extracted": M,
+  "schema_violations": K,
+  "audit_log_id": "..."
+}
+```
+
+> `LLM_PROVIDER=fake` 기본값으로, API 키 없이 deterministic 후보가 생성됩니다.
+> 환불 금액 청크에서 `Policy APPLIES_TO Refund` 후보가 1건 나오는데, seed에 없는 조합이라
+> 자동으로 `REJECTED + SCHEMA_VIOLATION` 처리됩니다 (거버넌스 데모).
+
+#### 4) 후보 조회
+
+```bash
+curl 'http://localhost:8000/documents/{document_id}/candidates'
+curl 'http://localhost:8000/candidates/entities?review_status=PENDING'
+curl 'http://localhost:8000/candidates/relations?review_status=REJECTED'
+```
+
+#### 5) Entity 승인
+
+```bash
+curl -X POST http://localhost:8000/candidates/entities/{entity_id}/approve \
+  -H 'Content-Type: application/json' \
+  -d '{"reviewer":"alice"}'
+```
+
+#### 6) Relation 승인 (Source/Target 가드)
+
+source / target entity 둘 다 APPROVED 상태가 아니면 409:
+
+```json
+{ "detail": { "code": "SOURCE_NOT_APPROVED", "message": "source entity is not APPROVED — approve it first" } }
+```
+
+둘 다 APPROVED일 때만:
+
+```bash
+curl -X POST http://localhost:8000/candidates/relations/{relation_id}/approve \
+  -H 'Content-Type: application/json' \
+  -d '{"reviewer":"alice"}'
+```
+
+#### 7) Audit Log 확인
+
+```bash
+curl 'http://localhost:8000/audit-logs?action=EXTRACTION_RUN'
+curl 'http://localhost:8000/audit-logs?action=ENTITY_APPROVED&document_id={document_id}'
+curl 'http://localhost:8000/audit-logs/{audit_log_id}'
+```
+
+각 row에 `before_json`, `after_json`, `metadata_json`이 들어있어 변경 이력 전체 추적 가능.
+
 ### 5. 접속 정보
 
 | 서비스 | URL | 비고 |
