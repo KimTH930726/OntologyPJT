@@ -28,6 +28,10 @@ export default function GraphCanvas({
 }) {
   const elRef = useRef<HTMLDivElement | null>(null);
   const networkRef = useRef<Network | null>(null);
+  // Stash the click handler in a ref so a fresh function identity on the
+  // parent doesn't tear down and rebuild the whole network.
+  const clickRef = useRef(onNodeClick);
+  clickRef.current = onNodeClick;
 
   useEffect(() => {
     if (!elRef.current) return;
@@ -76,20 +80,18 @@ export default function GraphCanvas({
     );
 
     networkRef.current = network;
-    if (onNodeClick) {
-      network.on("selectNode", (params) => {
-        const id = params.nodes?.[0] as string | undefined;
-        if (!id) return;
-        const node = nodes.find((n) => n.normalized_name === id);
-        if (node) onNodeClick(node);
-      });
-    }
+    network.on("selectNode", (params) => {
+      const id = params.nodes?.[0] as string | undefined;
+      if (!id) return;
+      const node = nodes.find((n) => n.normalized_name === id);
+      if (node) clickRef.current?.(node);
+    });
 
     return () => {
       network.destroy();
       networkRef.current = null;
     };
-  }, [nodes, relationships, onNodeClick]);
+  }, [nodes, relationships]);
 
   return (
     <div

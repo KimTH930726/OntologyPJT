@@ -26,8 +26,11 @@ COPY app ./app
 COPY alembic ./alembic
 COPY alembic.ini ./alembic.ini
 
-# admin SPA build output (vite outDir = ../app/static/admin) → /code/app/static/admin
-COPY --from=admin-build /app/static/admin ./app/static/admin
+# Admin SPA bundle. We keep it OUTSIDE /code/app on purpose: docker-compose
+# may bind-mount the host's ./app over /code/app for hot reload, which would
+# otherwise shadow the built SPA. main.py picks this up via ADMIN_STATIC_DIR.
+COPY --from=admin-build /app/static/admin /code/admin_dist
+ENV ADMIN_STATIC_DIR=/code/admin_dist
 
 EXPOSE 8000
 

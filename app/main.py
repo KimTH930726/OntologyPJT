@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -47,7 +48,16 @@ async def lifespan(_: FastAPI):
         dispose_engine()
 
 
-ADMIN_STATIC_DIR = Path(__file__).resolve().parent / "static" / "admin"
+def _resolve_admin_dir() -> Path:
+    # Override path (used by Docker image so the SPA survives a host-volume
+    # mount over /code/app). Default: app/static/admin.
+    override = os.environ.get("ADMIN_STATIC_DIR")
+    if override:
+        return Path(override).resolve()
+    return Path(__file__).resolve().parent / "static" / "admin"
+
+
+ADMIN_STATIC_DIR = _resolve_admin_dir()
 
 
 def _mount_admin(app: FastAPI) -> None:

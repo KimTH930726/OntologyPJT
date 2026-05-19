@@ -377,7 +377,8 @@ export default function Candidates() {
                     selected={selectedEnts.has(e.id)}
                     onSelect={(checked) => {
                       const next = new Set(selectedEnts);
-                      checked ? next.add(e.id) : next.delete(e.id);
+                      if (checked) next.add(e.id);
+                      else next.delete(e.id);
                       setSelectedEnts(next);
                     }}
                     onApprove={() => mApprE.mutate(e.id)}
@@ -420,7 +421,8 @@ export default function Candidates() {
                     selected={selectedRels.has(r.id)}
                     onSelect={(checked) => {
                       const next = new Set(selectedRels);
-                      checked ? next.add(r.id) : next.delete(r.id);
+                      if (checked) next.add(r.id);
+                      else next.delete(r.id);
                       setSelectedRels(next);
                     }}
                     onApprove={() => mApprR.mutate(r.id)}
