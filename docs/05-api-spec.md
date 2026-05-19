@@ -1,7 +1,18 @@
 # 5. REST API 설계
 
-> Base: `/api/v1`. 인증은 MVP에서 `X-Admin-Token` 헤더 단일 토큰.
-> 응답 공통: `{ "data": ..., "meta": {...} }`. 에러: `{ "error": { "code", "message", "detail" } }`.
+> **본 문서는 설계 청사진**입니다. 실제 구현된 라우터는 [`app/api/routes/`](../app/api/routes/)
+> 와 실행 중 `http://localhost:8000/docs` 의 자동 OpenAPI 가 SSOT 입니다.
+>
+> MVP 실측과의 주된 차이:
+>
+> - **Base path**: 현재 라우터는 `/api/v1` 접두사 없이 `/documents`, `/qa`, `/graph` ... 로 노출됩니다.
+> - **인증**: `X-Admin-Token` 은 설정값만 있고 미들웨어 미부착 — 실제로는 인증 없이 호출 가능. v2에서 활성화 예정.
+> - **응답 envelope**: 단일 리소스는 객체를 직접 반환, 목록은 배열을 직접 반환. 에러는 FastAPI 기본
+>   `{"detail": {"code": ..., "message": ...}}` 형식. 일관 envelope 정리는 Admin UI 시작 시점에 진행.
+
+E2E 사용 예시는 [USAGE.md](USAGE.md) 참고.
+
+---
 
 ## 5.1 문서
 

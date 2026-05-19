@@ -1,7 +1,14 @@
 # 3. PostgreSQL DB 테이블 설계
 
-> 모든 테이블은 `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`, `created_at/updated_at TIMESTAMPTZ` 공통.
-> 외래키는 `ON DELETE RESTRICT` 기본, staging→document만 `ON DELETE CASCADE`.
+> **본 문서는 설계 의도 / 초기 청사진**입니다. W1~W4에서 실제로 적용된 DDL은 일부 컬럼명·타입이
+> 조금 다릅니다 (예: `version` INT → VARCHAR("v1"), `seq` → `chunk_index`, `checksum` → `text_hash`,
+> `vector_ref` → `qdrant_point_id`, `ontology_entity_type.code TEXT PK` → `id UUID PK + name UNIQUE`).
+>
+> **실제 적용 스키마**의 SSOT는 [`alembic/versions/0001~0006`](../alembic/versions/) 입니다.
+> SQLAlchemy 모델은 [`app/db/models/`](../app/db/models/) 참고.
+
+> 모든 테이블은 `id UUID PRIMARY KEY`, `created_at/updated_at TIMESTAMPTZ` 공통.
+> 외래키는 `ON DELETE RESTRICT` 기본, staging→document/chunk만 `ON DELETE CASCADE`.
 
 ## 3.1 ENUM 타입
 
