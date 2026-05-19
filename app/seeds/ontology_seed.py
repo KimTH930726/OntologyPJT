@@ -4,6 +4,7 @@ Run with::
 
     docker compose exec app python -m app.seeds.ontology_seed
 """
+
 from __future__ import annotations
 
 import logging
@@ -85,12 +86,16 @@ def run() -> None:
             row = svc.create_relation_type(rt)
             logger.info(
                 "relation_type: %s %s %s (id=%s)",
-                row.source_entity_type, row.relation_name, row.target_entity_type, row.id,
+                row.source_entity_type,
+                row.relation_name,
+                row.target_entity_type,
+                row.id,
             )
         db.commit()
         logger.info(
             "seed complete: %d entity types, %d relation types",
-            len(ENTITY_TYPES), len(RELATION_TYPES),
+            len(ENTITY_TYPES),
+            len(RELATION_TYPES),
         )
     finally:
         db.close()

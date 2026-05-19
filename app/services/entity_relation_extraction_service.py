@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -71,9 +71,7 @@ class EntityRelationExtractionService:
         chunk = self.chunk_repo.get(chunk_id)
         if chunk is None:
             raise LookupError(f"chunk {chunk_id} not found")
-        return self._run(
-            document_id=chunk.document_id, chunks=[chunk], target_type="CHUNK"
-        )
+        return self._run(document_id=chunk.document_id, chunks=[chunk], target_type="CHUNK")
 
     # ---- internal ----
     def _run(
@@ -102,9 +100,7 @@ class EntityRelationExtractionService:
             # 1) entities
             id_by_norm: dict[str, UUID] = {}
             for e in response.entities:
-                entity, was_violation = self._save_entity(
-                    document_id, chunk.id, e, source_label
-                )
+                entity, was_violation = self._save_entity(document_id, chunk.id, e, source_label)
                 id_by_norm[e.normalized_name] = entity.id
                 if was_violation:
                     total_violations += 1
@@ -172,7 +168,7 @@ class EntityRelationExtractionService:
             ),
             rejection_reason=SCHEMA_VIOLATION_UNKNOWN_ENTITY if is_violation else None,
             reviewed_by="system" if is_violation else None,
-            reviewed_at=datetime.now(timezone.utc) if is_violation else None,
+            reviewed_at=datetime.now(UTC) if is_violation else None,
         )
         return self.extraction_repo.add_entity(row), is_violation
 
@@ -190,9 +186,7 @@ class EntityRelationExtractionService:
         the referenced concept (e.g. ``Order``)."""
         if normalized_name in id_by_norm:
             return id_by_norm[normalized_name]
-        existing = self.extraction_repo.find_pending_entity(
-            chunk_id, normalized_name, entity_type
-        )
+        existing = self.extraction_repo.find_pending_entity(chunk_id, normalized_name, entity_type)
         if existing is not None:
             id_by_norm[normalized_name] = existing.id
             return existing.id
@@ -232,9 +226,7 @@ class EntityRelationExtractionService:
             chunk_id, document_id, r.target, r.target_type, id_by_norm, source_label
         )
 
-        is_violation = not self.ontology.validate_relation(
-            r.source_type, r.relation, r.target_type
-        )
+        is_violation = not self.ontology.validate_relation(r.source_type, r.relation, r.target_type)
         row = ExtractedRelation(
             document_id=document_id,
             chunk_id=chunk_id,
@@ -251,10 +243,8 @@ class EntityRelationExtractionService:
             review_status=(
                 ReviewStatus.REJECTED.value if is_violation else ReviewStatus.PENDING.value
             ),
-            rejection_reason=(
-                SCHEMA_VIOLATION_RELATION_NOT_ALLOWED if is_violation else None
-            ),
+            rejection_reason=(SCHEMA_VIOLATION_RELATION_NOT_ALLOWED if is_violation else None),
             reviewed_by="system" if is_violation else None,
-            reviewed_at=datetime.now(timezone.utc) if is_violation else None,
+            reviewed_at=datetime.now(UTC) if is_violation else None,
         )
         return self.extraction_repo.add_relation(row), is_violation

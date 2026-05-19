@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -21,8 +20,8 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-_engine: Optional[Engine] = None
-_SessionLocal: Optional[sessionmaker] = None
+_engine: Engine | None = None
+_SessionLocal: sessionmaker | None = None
 
 
 def get_engine() -> Engine:

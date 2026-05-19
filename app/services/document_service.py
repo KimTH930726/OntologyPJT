@@ -56,7 +56,9 @@ class DocumentService:
     def get(self, document_id: UUID) -> Document | None:
         return self.document_repo.get(document_id)
 
-    def list(self, *, domain: str | None, limit: int, offset: int) -> tuple[list[Document], int]:
+    def list_documents(
+        self, *, domain: str | None, limit: int, offset: int
+    ) -> tuple[list[Document], int]:
         items = self.document_repo.list(domain=domain, limit=limit, offset=offset)
         total = self.document_repo.count(domain=domain)
         return items, total
@@ -128,7 +130,10 @@ class DocumentService:
 
         logger.info(
             "document created id=%s chunks=%d indexed=%d failed=%d",
-            doc.id, result.total, result.indexed, result.failed,
+            doc.id,
+            result.total,
+            result.indexed,
+            result.failed,
         )
 
         return DocumentCreationResult(

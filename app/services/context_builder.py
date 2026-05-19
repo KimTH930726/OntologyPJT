@@ -24,9 +24,7 @@ class ContextBuilder:
             raise ValueError("total_budget_chars must be positive")
         self.total_budget_chars = total_budget_chars
 
-    def build(
-        self, graph: GraphRetrievalResult, vector: VectorRetrievalResult
-    ) -> BuiltContext:
+    def build(self, graph: GraphRetrievalResult, vector: VectorRetrievalResult) -> BuiltContext:
         graph_block, used_triples = self._render_graph(graph.triples)
         remaining = max(self.total_budget_chars - len(graph_block), 200)
         evidence_block, used_chunks = self._render_evidence(vector.chunks, remaining)
@@ -44,9 +42,7 @@ class ContextBuilder:
         lines: list[str] = []
         used: list[GraphTriple] = []
         for t in triples:
-            conf = (
-                f" (confidence: {t.confidence:.2f})" if t.confidence is not None else ""
-            )
+            conf = f" (confidence: {t.confidence:.2f})" if t.confidence is not None else ""
             lines.append(f"- {t.source} {t.relation} {t.target}{conf}")
             used.append(t)
         return "\n".join(lines), used

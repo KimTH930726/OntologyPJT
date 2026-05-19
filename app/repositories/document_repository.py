@@ -24,7 +24,9 @@ class DocumentRepository:
         stmt = select(Document).where(Document.content_hash == content_hash)
         return self.db.execute(stmt).scalar_one_or_none()
 
-    def list(self, *, domain: str | None = None, limit: int = 50, offset: int = 0) -> list[Document]:
+    def list(
+        self, *, domain: str | None = None, limit: int = 50, offset: int = 0
+    ) -> list[Document]:
         stmt = select(Document).order_by(Document.created_at.desc()).limit(limit).offset(offset)
         if domain:
             stmt = stmt.where(Document.domain == domain)

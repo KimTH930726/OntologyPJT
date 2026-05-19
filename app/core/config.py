@@ -17,7 +17,9 @@ class Settings(BaseSettings):
     admin_token: str = "dev-admin-token"
 
     # Postgres
-    database_url: str = "postgresql+psycopg://ontology_user:ontology_password@localhost:5432/ontology_rag"
+    database_url: str = (
+        "postgresql+psycopg://ontology_user:ontology_password@localhost:5432/ontology_rag"
+    )
 
     # Neo4j
     neo4j_uri: str = "bolt://localhost:7687"

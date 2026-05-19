@@ -3,6 +3,7 @@
 Uses the messages API with a JSON-output instruction. Validates the response
 against ``ExtractionResponse``. Imports are lazy.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,9 +36,7 @@ class AnthropicProvider(LLMProvider):
             messages=[{"role": "user", "content": prompt}],
             temperature=0,
         )
-        return "".join(
-            b.text for b in resp.content if getattr(b, "type", None) == "text"
-        ).strip()
+        return "".join(b.text for b in resp.content if getattr(b, "type", None) == "text").strip()
 
     def extract_intent_entities(self, question: str) -> list[str]:
         return []

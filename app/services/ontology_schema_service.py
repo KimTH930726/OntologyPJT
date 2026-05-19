@@ -110,9 +110,7 @@ class OntologySchemaService:
         row = self.repo.get_entity_type_by_name(entity_type)
         return row is not None and row.is_active
 
-    def validate_relation(
-        self, source_type: str, relation: str, target_type: str
-    ) -> bool:
+    def validate_relation(self, source_type: str, relation: str, target_type: str) -> bool:
         row = self.repo.find_relation_type(source_type, relation, target_type)
         return row is not None and row.is_active
 
@@ -120,9 +118,7 @@ class OntologySchemaService:
         ets = self.repo.list_entity_types(active_only=True)
         rts = self.repo.list_relation_types(active_only=True)
         return OntologySnapshot(
-            entity_types=tuple(
-                EntityTypeSpec(name=e.name, description=e.description) for e in ets
-            ),
+            entity_types=tuple(EntityTypeSpec(name=e.name, description=e.description) for e in ets),
             relation_types=tuple(
                 RelationTypeSpec(
                     source=r.source_entity_type,

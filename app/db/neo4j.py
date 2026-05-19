@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 from neo4j import Driver, GraphDatabase
 
@@ -9,7 +8,7 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_driver: Optional[Driver] = None
+_driver: Driver | None = None
 
 
 def get_neo4j_driver() -> Driver:

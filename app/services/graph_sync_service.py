@@ -8,11 +8,12 @@ Guards:
  4. Per-row failures are recorded in ``graph_sync_log`` and the loop continues.
  5. By default a SUCCESS history skips re-sync (idempotent + cheap).
 """
+
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -80,17 +81,19 @@ class GraphSyncService:
 
     # ------------------- entities -------------------
     def _sync_entities(self, *, force: bool, summary: GraphSyncSummary) -> None:
-        rows = self.db.execute(
-            select(ExtractedEntity)
-            .where(ExtractedEntity.review_status == ReviewStatus.APPROVED.value)
-            .where(ExtractedEntity.merged_into_id.is_(None))
-            .order_by(ExtractedEntity.created_at.asc())
-        ).scalars().all()
+        rows = (
+            self.db.execute(
+                select(ExtractedEntity)
+                .where(ExtractedEntity.review_status == ReviewStatus.APPROVED.value)
+                .where(ExtractedEntity.merged_into_id.is_(None))
+                .order_by(ExtractedEntity.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
 
         for entity in rows:
-            if not force and self.log_repo.has_success(
-                GraphSyncTargetType.ENTITY.value, entity.id
-            ):
+            if not force and self.log_repo.has_success(GraphSyncTargetType.ENTITY.value, entity.id):
                 self._record_log(
                     target_type=GraphSyncTargetType.ENTITY,
                     target_id=entity.id,
@@ -147,16 +150,17 @@ class GraphSyncService:
 
     # ------------------- relations -------------------
     def _sync_relations(self, *, force: bool, summary: GraphSyncSummary) -> None:
-        whitelist = {
-            rt.relation_name
-            for rt in self.ontology.list_relation_types(active_only=True)
-        }
+        whitelist = {rt.relation_name for rt in self.ontology.list_relation_types(active_only=True)}
 
-        rows = self.db.execute(
-            select(ExtractedRelation)
-            .where(ExtractedRelation.review_status == ReviewStatus.APPROVED.value)
-            .order_by(ExtractedRelation.created_at.asc())
-        ).scalars().all()
+        rows = (
+            self.db.execute(
+                select(ExtractedRelation)
+                .where(ExtractedRelation.review_status == ReviewStatus.APPROVED.value)
+                .order_by(ExtractedRelation.created_at.asc())
+            )
+            .scalars()
+            .all()
+        )
 
         for relation in rows:
             if not force and self.log_repo.has_success(
@@ -183,13 +187,9 @@ class GraphSyncService:
                 summary.relation_failed += 1
                 summary.errors.append(f"relation {relation.id}: {e}")
 
-    def _sync_one_relation(
-        self, relation: ExtractedRelation, whitelist: set[str]
-    ) -> None:
+    def _sync_one_relation(self, relation: ExtractedRelation, whitelist: set[str]) -> None:
         if relation.relation_type not in whitelist:
-            raise RuntimeError(
-                f"relation_type '{relation.relation_type}' not in active whitelist"
-            )
+            raise RuntimeError(f"relation_type '{relation.relation_type}' not in active whitelist")
 
         src_id = relation.source_entity_id
         tgt_id = relation.target_entity_id
@@ -206,14 +206,10 @@ class GraphSyncService:
             raise RuntimeError("target entity is not APPROVED at sync time")
         if not self.log_repo.has_success(
             GraphSyncTargetType.ENTITY.value, src.id
-        ) or not self.log_repo.has_success(
-            GraphSyncTargetType.ENTITY.value, tgt.id
-        ):
+        ) or not self.log_repo.has_success(GraphSyncTargetType.ENTITY.value, tgt.id):
             raise RuntimeError("source/target entity not yet synced to Neo4j")
 
-        confidence = (
-            float(relation.confidence) if relation.confidence is not None else None
-        )
+        confidence = float(relation.confidence) if relation.confidence is not None else None
         doc = self.db.get(Document, relation.document_id)
         version = doc.version if doc else "v1"
 
@@ -267,6 +263,6 @@ class GraphSyncService:
             neo4j_node_id=neo4j_node_id,
             neo4j_relation_id=neo4j_relation_id,
             error_message=error_message,
-            synced_at=datetime.now(timezone.utc) if status == GraphSyncStatus.SUCCESS else None,
+            synced_at=datetime.now(UTC) if status == GraphSyncStatus.SUCCESS else None,
         )
         self.log_repo.add(row)

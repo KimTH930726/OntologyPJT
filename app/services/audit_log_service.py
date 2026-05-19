@@ -91,6 +91,8 @@ class AuditLogService:
             chunk_id=chunk_id,
             before_json=json.loads(json.dumps(before, default=_json_safe)) if before else None,
             after_json=json.loads(json.dumps(after, default=_json_safe)) if after else None,
-            metadata_json=json.loads(json.dumps(metadata, default=_json_safe)) if metadata else None,
+            metadata_json=json.loads(json.dumps(metadata, default=_json_safe))
+            if metadata
+            else None,
         )
         return self.repo.add(row)

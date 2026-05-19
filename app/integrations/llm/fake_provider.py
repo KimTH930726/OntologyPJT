@@ -4,6 +4,7 @@ It emits entities/relations based on keyword matches in the chunk text. Some
 emissions intentionally violate the ontology seed (e.g. ``APPLIES_TO Refund``)
 so that the SCHEMA_VIOLATION path is exercised end-to-end.
 """
+
 from __future__ import annotations
 
 from app.integrations.llm.base import LLMProvider, OntologySnapshot
@@ -21,7 +22,7 @@ def _extract_section(prompt: str, header: str) -> str:
     idx = prompt.find(header)
     if idx == -1:
         return ""
-    after = prompt[idx + len(header):]
+    after = prompt[idx + len(header) :]
     next_marker_idx = -1
     for i, ch in enumerate(after):
         if ch == "[" and (i == 0 or after[i - 1] == "\n"):
@@ -62,8 +63,7 @@ class FakeLLMProvider(LLMProvider):
         has_evidence = evidence_block.strip() and evidence_block.strip() != "(없음)"
 
         cancel_question = any(
-            k in question_block
-            for k in ("환불", "취소", "전체 취소", "FullCancelPolicy")
+            k in question_block for k in ("환불", "취소", "전체 취소", "FullCancelPolicy")
         )
         has_payment_completed = "PaymentCompleted" in graph_block
         has_delivery_not_started = "DeliveryNotStarted" in graph_block
@@ -128,22 +128,31 @@ class FakeLLMProvider(LLMProvider):
             ]
             relations += [
                 LLMRelationCandidate(
-                    source="FullCancelPolicy", source_type="Policy",
+                    source="FullCancelPolicy",
+                    source_type="Policy",
                     relation="REQUIRES",
-                    target="PaymentCompleted", target_type="Condition",
-                    confidence=0.90, evidence_text=text,
+                    target="PaymentCompleted",
+                    target_type="Condition",
+                    confidence=0.90,
+                    evidence_text=text,
                 ),
                 LLMRelationCandidate(
-                    source="FullCancelPolicy", source_type="Policy",
+                    source="FullCancelPolicy",
+                    source_type="Policy",
                     relation="REQUIRES",
-                    target="DeliveryNotStarted", target_type="Condition",
-                    confidence=0.88, evidence_text=text,
+                    target="DeliveryNotStarted",
+                    target_type="Condition",
+                    confidence=0.88,
+                    evidence_text=text,
                 ),
                 LLMRelationCandidate(
-                    source="FullCancelPolicy", source_type="Policy",
+                    source="FullCancelPolicy",
+                    source_type="Policy",
                     relation="APPLIES_TO",
-                    target="Order", target_type="Order",
-                    confidence=0.85, evidence_text=text,
+                    target="Order",
+                    target_type="Order",
+                    confidence=0.85,
+                    evidence_text=text,
                 ),
             ]
 
@@ -167,16 +176,22 @@ class FakeLLMProvider(LLMProvider):
             ]
             relations += [
                 LLMRelationCandidate(
-                    source="PartialCancelPolicy", source_type="Policy",
+                    source="PartialCancelPolicy",
+                    source_type="Policy",
                     relation="APPLIES_TO",
-                    target="Order", target_type="Order",
-                    confidence=0.83, evidence_text=text,
+                    target="Order",
+                    target_type="Order",
+                    confidence=0.83,
+                    evidence_text=text,
                 ),
                 LLMRelationCandidate(
-                    source="PartialCancelPolicy", source_type="Policy",
+                    source="PartialCancelPolicy",
+                    source_type="Policy",
                     relation="REQUIRES",
-                    target="PerOrderItemOnly", target_type="Condition",
-                    confidence=0.80, evidence_text=text,
+                    target="PerOrderItemOnly",
+                    target_type="Condition",
+                    confidence=0.80,
+                    evidence_text=text,
                 ),
             ]
 
@@ -200,19 +215,26 @@ class FakeLLMProvider(LLMProvider):
             ]
             relations += [
                 LLMRelationCandidate(
-                    source="RefundAmountLimit", source_type="Policy",
+                    source="RefundAmountLimit",
+                    source_type="Policy",
                     relation="REQUIRES",
-                    target="PaymentAmountCap", target_type="Condition",
-                    confidence=0.78, evidence_text=text,
+                    target="PaymentAmountCap",
+                    target_type="Condition",
+                    confidence=0.78,
+                    evidence_text=text,
                 ),
                 # Intentional schema violation: "Policy APPLIES_TO Refund" is
                 # NOT in the seed (only Policy APPLIES_TO Order is allowed).
                 # This exercises the SCHEMA_VIOLATION reject path.
                 LLMRelationCandidate(
-                    source="RefundAmountLimit", source_type="Policy",
+                    source="RefundAmountLimit",
+                    source_type="Policy",
                     relation="APPLIES_TO",
-                    target="Refund", target_type="Refund",
-                    confidence=0.60, evidence_text=text, needs_review=True,
+                    target="Refund",
+                    target_type="Refund",
+                    confidence=0.60,
+                    evidence_text=text,
+                    needs_review=True,
                 ),
             ]
 

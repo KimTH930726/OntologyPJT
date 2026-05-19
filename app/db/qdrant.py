@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import contextlib
 import logging
-from typing import Optional
 
 from qdrant_client import QdrantClient
 
@@ -9,7 +9,7 @@ from app.core.config import get_settings
 
 logger = logging.getLogger(__name__)
 
-_client: Optional[QdrantClient] = None
+_client: QdrantClient | None = None
 
 
 def get_qdrant_client() -> QdrantClient:
@@ -34,8 +34,6 @@ def ping_qdrant() -> tuple[bool, str | None]:
 def close_qdrant_client() -> None:
     global _client
     if _client is not None:
-        try:
+        with contextlib.suppress(Exception):
             _client.close()
-        except Exception:  # pragma: no cover
-            pass
         _client = None

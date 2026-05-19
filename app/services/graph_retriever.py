@@ -53,10 +53,7 @@ class GraphRetriever:
         if not seeds:
             return GraphRetrievalResult()
 
-        whitelist = [
-            rt.relation_name
-            for rt in self.ontology.list_relation_types(active_only=True)
-        ]
+        whitelist = [rt.relation_name for rt in self.ontology.list_relation_types(active_only=True)]
         rel_filter = "|".join(sorted(set(whitelist))) if whitelist else None
 
         all_nodes: dict[str, dict] = {}
@@ -88,9 +85,7 @@ class GraphRetriever:
                         relation=rel["relation"],
                         target=rel["target"],
                         confidence=(
-                            float(rel["confidence"])
-                            if rel.get("confidence") is not None
-                            else None
+                            float(rel["confidence"]) if rel.get("confidence") is not None else None
                         ),
                         chunk_id=str(cid) if cid else None,
                     )

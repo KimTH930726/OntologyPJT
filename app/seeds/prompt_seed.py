@@ -4,6 +4,7 @@ Run with::
 
     docker compose exec app python -m app.seeds.prompt_seed
 """
+
 from __future__ import annotations
 
 import logging

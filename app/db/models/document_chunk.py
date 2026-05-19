@@ -54,4 +54,4 @@ class DocumentChunk(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
     )
 
-    document: Mapped["Document"] = relationship(back_populates="chunks")
+    document: Mapped[Document] = relationship(back_populates="chunks")

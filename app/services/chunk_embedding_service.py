@@ -74,9 +74,7 @@ class ChunkEmbeddingService:
                 )
                 indexed += 1
             except Exception as e:
-                logger.exception(
-                    "embedding/upsert failed for chunk %s: %s", chunk.id, e
-                )
+                logger.exception("embedding/upsert failed for chunk %s: %s", chunk.id, e)
                 self.chunk_repo.mark_status(chunk.id, VectorStatus.FAILED)
                 failed += 1
 

@@ -8,6 +8,7 @@ a relation_type that has already been validated against the active relation
 type whitelist; this class re-checks against an allow-list pattern as defense
 in depth before string-interpolating it into Cypher.
 """
+
 from __future__ import annotations
 
 import logging
@@ -28,10 +29,8 @@ _LABEL_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,63}$")
 
 
 SCHEMA_STATEMENTS: tuple[str, ...] = (
-    "CREATE CONSTRAINT entity_id_unique IF NOT EXISTS "
-    "FOR (e:Entity) REQUIRE e.id IS UNIQUE",
-    "CREATE INDEX entity_normalized_name_index IF NOT EXISTS "
-    "FOR (e:Entity) ON (e.normalized_name)",
+    "CREATE CONSTRAINT entity_id_unique IF NOT EXISTS FOR (e:Entity) REQUIRE e.id IS UNIQUE",
+    "CREATE INDEX entity_normalized_name_index IF NOT EXISTS FOR (e:Entity) ON (e.normalized_name)",
     "CREATE INDEX entity_type_index IF NOT EXISTS FOR (e:Entity) ON (e.type)",
     "CREATE CONSTRAINT chunk_id_unique IF NOT EXISTS "
     "FOR (c:DocumentChunk) REQUIRE c.chunk_id IS UNIQUE",
@@ -216,9 +215,7 @@ class Neo4jRepository:
                 "source_document_id": row["source_document_id"],
                 "chunk_id": row["chunk_id"],
                 "confidence": row["confidence"],
-                "defined_in": [
-                    d for d in row["defined_in"] if d.get("chunk_id") is not None
-                ],
+                "defined_in": [d for d in row["defined_in"] if d.get("chunk_id") is not None],
             }
 
     def fetch_subgraph(

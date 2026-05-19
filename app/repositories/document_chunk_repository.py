@@ -40,9 +40,7 @@ class DocumentChunkRepository:
         return list(self.db.execute(stmt).scalars().all())
 
     def count_by_document(self, document_id: UUID) -> int:
-        stmt = select(func.count(DocumentChunk.id)).where(
-            DocumentChunk.document_id == document_id
-        )
+        stmt = select(func.count(DocumentChunk.id)).where(DocumentChunk.document_id == document_id)
         return self.db.execute(stmt).scalar_one()
 
     def status_counts_by_document(self, document_id: UUID) -> dict[str, int]:

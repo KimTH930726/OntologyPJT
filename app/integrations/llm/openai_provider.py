@@ -5,6 +5,7 @@ json_object`` (or json_schema), and validates the result against
 ``ExtractionResponse``. Imports are lazy so missing dependencies / API keys
 don't break W2.
 """
+
 from __future__ import annotations
 
 import json

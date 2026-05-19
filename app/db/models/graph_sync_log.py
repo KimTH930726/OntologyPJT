@@ -12,12 +12,8 @@ from app.db.base import Base
 class GraphSyncLog(Base):
     __tablename__ = "graph_sync_log"
     __table_args__ = (
-        CheckConstraint(
-            "target_type IN ('ENTITY','RELATION')", name="ck_gsl_target_type"
-        ),
-        CheckConstraint(
-            "sync_status IN ('SUCCESS','FAILED','SKIPPED')", name="ck_gsl_sync_status"
-        ),
+        CheckConstraint("target_type IN ('ENTITY','RELATION')", name="ck_gsl_target_type"),
+        CheckConstraint("sync_status IN ('SUCCESS','FAILED','SKIPPED')", name="ck_gsl_sync_status"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid(), primary_key=True, default=uuid.uuid4)

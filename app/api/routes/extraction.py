@@ -92,9 +92,7 @@ def list_relation_candidates(
     return [ExtractedRelationResponse.model_validate(r) for r in rows]
 
 
-@router.get(
-    "/documents/{document_id}/candidates", response_model=DocumentCandidatesResponse
-)
+@router.get("/documents/{document_id}/candidates", response_model=DocumentCandidatesResponse)
 def list_document_candidates(
     document_id: UUID,
     review_status: str | None = Query(default=None),

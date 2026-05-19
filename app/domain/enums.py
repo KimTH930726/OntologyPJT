@@ -34,7 +34,9 @@ class AuditAction(StrEnum):
 
 
 SCHEMA_VIOLATION_UNKNOWN_ENTITY = "SCHEMA_VIOLATION: unknown entity type"
-SCHEMA_VIOLATION_RELATION_NOT_ALLOWED = "SCHEMA_VIOLATION: relation not allowed for given source/target types"
+SCHEMA_VIOLATION_RELATION_NOT_ALLOWED = (
+    "SCHEMA_VIOLATION: relation not allowed for given source/target types"
+)
 
 
 class GraphSyncTargetType(StrEnum):

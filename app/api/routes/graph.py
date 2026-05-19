@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.core.deps import get_db
@@ -42,7 +42,9 @@ def sync_all(force: bool = Query(default=False), db: Session = Depends(get_db)) 
 
 
 @router.post("/sync/entities", response_model=GraphSyncResult)
-def sync_entities(force: bool = Query(default=False), db: Session = Depends(get_db)) -> GraphSyncResult:
+def sync_entities(
+    force: bool = Query(default=False), db: Session = Depends(get_db)
+) -> GraphSyncResult:
     svc = GraphSyncService(db)
     s = svc.sync_approved_entities(force=force)
     return GraphSyncResult(
@@ -53,7 +55,9 @@ def sync_entities(force: bool = Query(default=False), db: Session = Depends(get_
 
 
 @router.post("/sync/relations", response_model=GraphSyncResult)
-def sync_relations(force: bool = Query(default=False), db: Session = Depends(get_db)) -> GraphSyncResult:
+def sync_relations(
+    force: bool = Query(default=False), db: Session = Depends(get_db)
+) -> GraphSyncResult:
     svc = GraphSyncService(db)
     s = svc.sync_approved_relations(force=force)
     return GraphSyncResult(
@@ -99,7 +103,9 @@ def get_entity(normalized_name: str) -> GraphEntityResponse:
         view = repo.fetch_entity_view(name)
     except Exception as e:
         logger.exception("graph entity fetch failed")
-        raise HTTPException(status_code=502, detail={"code": "NEO4J_ERROR", "message": str(e)}) from e
+        raise HTTPException(
+            status_code=502, detail={"code": "NEO4J_ERROR", "message": str(e)}
+        ) from e
     if view is None:
         raise HTTPException(status_code=404, detail={"code": "ENTITY_NOT_FOUND"})
     return GraphEntityResponse(
@@ -137,7 +143,9 @@ def get_subgraph(
         sub = repo.fetch_subgraph(name, depth, rel_filter)
     except Exception as e:
         logger.exception("subgraph fetch failed")
-        raise HTTPException(status_code=502, detail={"code": "NEO4J_ERROR", "message": str(e)}) from e
+        raise HTTPException(
+            status_code=502, detail={"code": "NEO4J_ERROR", "message": str(e)}
+        ) from e
 
     if not sub["nodes"]:
         raise HTTPException(status_code=404, detail={"code": "SEED_NOT_FOUND"})

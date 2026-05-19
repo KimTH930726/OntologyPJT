@@ -3,6 +3,7 @@
 W2 fake provider does not call this. It exists so the openai/anthropic
 providers can render extraction prompts as designed in docs/11.7.1.
 """
+
 from __future__ import annotations
 
 from functools import lru_cache
@@ -50,16 +51,12 @@ def render_extraction_user(chunk_text: str) -> str:
     return _env().get_template("extraction.user.j2").render(chunk_text=chunk_text)
 
 
-def render_extraction_messages(
-    chunk_text: str, snapshot: OntologySnapshot
-) -> list[dict[str, str]]:
+def render_extraction_messages(chunk_text: str, snapshot: OntologySnapshot) -> list[dict[str, str]]:
     return [
         {"role": "system", "content": render_extraction_system(snapshot)},
         {"role": "user", "content": render_extraction_user(chunk_text)},
     ]
 
 
-def render_extraction_for_anthropic(
-    chunk_text: str, snapshot: OntologySnapshot
-) -> tuple[str, str]:
+def render_extraction_for_anthropic(chunk_text: str, snapshot: OntologySnapshot) -> tuple[str, str]:
     return render_extraction_system(snapshot), render_extraction_user(chunk_text)

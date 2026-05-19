@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy.orm import Session
@@ -10,6 +10,11 @@ from app.core.config import get_settings
 from app.db.models.extracted_entity import ExtractedEntity
 from app.db.models.extracted_relation import ExtractedRelation
 from app.domain.enums import AuditAction, GraphSyncTargetType, ReviewStatus
+from app.domain.exceptions import ConflictError, DomainError, NotFoundError, ValidationError
+from app.domain.policies.relation_approval import (
+    RelationApprovalCode,
+    evaluate_relation_approval,
+)
 from app.repositories.extraction_repository import ExtractionRepository
 from app.schemas.review import (
     ReviewApproveRequest,
@@ -27,29 +32,32 @@ from app.services.audit_log_service import (
 logger = logging.getLogger(__name__)
 
 
-class ReviewError(Exception):
-    code: str = "REVIEW_ERROR"
-
-    def __init__(self, message: str, code: str | None = None) -> None:
-        super().__init__(message)
-        if code:
-            self.code = code
+# Backward-compatible alias kept while routes still import ReviewError.
+ReviewError = DomainError
 
 
-class NotFoundError(ReviewError):
-    code = "NOT_FOUND"
+class SourceNotApprovedError(ConflictError):
+    code = RelationApprovalCode.SOURCE_NOT_APPROVED
 
 
-class SourceNotApprovedError(ReviewError):
-    code = "SOURCE_NOT_APPROVED"
+class TargetNotApprovedError(ConflictError):
+    code = RelationApprovalCode.TARGET_NOT_APPROVED
 
 
-class TargetNotApprovedError(ReviewError):
-    code = "TARGET_NOT_APPROVED"
+__all__ = [
+    "ReviewError",
+    "DomainError",
+    "ConflictError",
+    "NotFoundError",
+    "ValidationError",
+    "SourceNotApprovedError",
+    "TargetNotApprovedError",
+    "ReviewService",
+]
 
 
 def _utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ReviewService:
@@ -108,9 +116,7 @@ class ReviewService:
         self.db.commit()
         return e
 
-    def modify_entity(
-        self, entity_id: UUID, dto: ReviewModifyEntityRequest
-    ) -> ExtractedEntity:
+    def modify_entity(self, entity_id: UUID, dto: ReviewModifyEntityRequest) -> ExtractedEntity:
         e = self._get_entity_or_raise(entity_id)
         before = entity_snapshot(e)
         if dto.name is not None:
@@ -164,9 +170,7 @@ class ReviewService:
         return e
 
     # =================== RELATION ===================
-    def approve_relation(
-        self, relation_id: UUID, dto: ReviewApproveRequest
-    ) -> ExtractedRelation:
+    def approve_relation(self, relation_id: UUID, dto: ReviewApproveRequest) -> ExtractedRelation:
         r = self._get_relation_or_raise(relation_id)
         # Guard: source/target entities must both be APPROVED.
         self._assert_relation_endpoints_approved(r)
@@ -190,9 +194,7 @@ class ReviewService:
         self._maybe_auto_sync(target_type=GraphSyncTargetType.RELATION)
         return r
 
-    def reject_relation(
-        self, relation_id: UUID, dto: ReviewRejectRequest
-    ) -> ExtractedRelation:
+    def reject_relation(self, relation_id: UUID, dto: ReviewRejectRequest) -> ExtractedRelation:
         r = self._get_relation_or_raise(relation_id)
         before = relation_snapshot(r)
         r.review_status = ReviewStatus.REJECTED.value
@@ -245,9 +247,7 @@ class ReviewService:
         self.db.commit()
         return r
 
-    def merge_relation(
-        self, relation_id: UUID, dto: ReviewMergeRequest
-    ) -> ExtractedRelation:
+    def merge_relation(self, relation_id: UUID, dto: ReviewMergeRequest) -> ExtractedRelation:
         r = self._get_relation_or_raise(relation_id)
         if self.repo.get_relation(dto.into_id) is None:
             raise NotFoundError(f"merge target relation {dto.into_id} not found")
@@ -289,21 +289,17 @@ class ReviewService:
         src = self._resolve_relation_endpoint(
             r.source_entity_id, r.chunk_id, r.source_entity_name, r.source_entity_type
         )
-        if src is None or src.review_status != ReviewStatus.APPROVED.value:
-            raise SourceNotApprovedError(
-                "source entity is not APPROVED — approve it first"
-            )
-        if r.source_entity_id != src.id:
-            r.source_entity_id = src.id
-
         tgt = self._resolve_relation_endpoint(
             r.target_entity_id, r.chunk_id, r.target_entity_name, r.target_entity_type
         )
-        if tgt is None or tgt.review_status != ReviewStatus.APPROVED.value:
-            raise TargetNotApprovedError(
-                "target entity is not APPROVED — approve it first"
-            )
-        if r.target_entity_id != tgt.id:
+        ok, reason = evaluate_relation_approval(src, tgt)
+        if not ok:
+            if reason == RelationApprovalCode.SOURCE_NOT_APPROVED:
+                raise SourceNotApprovedError("source entity is not APPROVED — approve it first")
+            raise TargetNotApprovedError("target entity is not APPROVED — approve it first")
+        if src is not None and r.source_entity_id != src.id:
+            r.source_entity_id = src.id
+        if tgt is not None and r.target_entity_id != tgt.id:
             r.target_entity_id = tgt.id
 
     def _maybe_auto_sync(self, *, target_type: GraphSyncTargetType) -> None:

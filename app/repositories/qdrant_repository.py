@@ -49,6 +49,20 @@ class QdrantRepository:
             points=[PointStruct(id=point_id, vector=vector, payload=payload)],
         )
 
+    def upsert_points(self, items: list[tuple[str, list[float], dict[str, Any]]]) -> None:
+        """Batch upsert: one HTTP round-trip instead of N. Caller handles
+        per-item error semantics by chunking the input or splitting on
+        retry."""
+        if not items:
+            return
+        self.ensure_collection()
+        self.client.upsert(
+            collection_name=self.collection,
+            points=[
+                PointStruct(id=pid, vector=vec, payload=payload) for pid, vec, payload in items
+            ],
+        )
+
     def search(
         self,
         vector: list[float],
@@ -72,10 +86,7 @@ class QdrantRepository:
         except UnexpectedResponse as e:  # pragma: no cover
             logger.warning("qdrant search failed: %s", e)
             return []
-        return [
-            {"id": str(p.id), "score": p.score, "payload": p.payload or {}}
-            for p in results
-        ]
+        return [{"id": str(p.id), "score": p.score, "payload": p.payload or {}} for p in results]
 
     def get_point(self, point_id: str) -> dict[str, Any] | None:
         try:

@@ -55,7 +55,7 @@ def list_documents(
     db: Session = Depends(get_db),
 ) -> list[DocumentOut]:
     service = DocumentService(db)
-    items, _ = service.list(domain=domain, limit=limit, offset=offset)
+    items, _ = service.list_documents(domain=domain, limit=limit, offset=offset)
     return [DocumentOut.model_validate(d) for d in items]
 
 
