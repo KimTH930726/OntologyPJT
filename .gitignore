@@ -13,3 +13,8 @@ venv/
 .idea/
 .vscode/
 *.log
+
+# admin SPA build artifacts
+app/static/admin/
+admin/node_modules/
+admin/dist/
