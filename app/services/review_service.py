@@ -6,9 +6,10 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.db.models.extracted_entity import ExtractedEntity
 from app.db.models.extracted_relation import ExtractedRelation
-from app.domain.enums import AuditAction, ReviewStatus
+from app.domain.enums import AuditAction, GraphSyncTargetType, ReviewStatus
 from app.repositories.extraction_repository import ExtractionRepository
 from app.schemas.review import (
     ReviewApproveRequest,
@@ -83,6 +84,7 @@ class ReviewService:
             after=entity_snapshot(e),
         )
         self.db.commit()
+        self._maybe_auto_sync(target_type=GraphSyncTargetType.ENTITY)
         return e
 
     def reject_entity(self, entity_id: UUID, dto: ReviewRejectRequest) -> ExtractedEntity:
@@ -185,6 +187,7 @@ class ReviewService:
             after=relation_snapshot(r),
         )
         self.db.commit()
+        self._maybe_auto_sync(target_type=GraphSyncTargetType.RELATION)
         return r
 
     def reject_relation(
@@ -302,6 +305,23 @@ class ReviewService:
             )
         if r.target_entity_id != tgt.id:
             r.target_entity_id = tgt.id
+
+    def _maybe_auto_sync(self, *, target_type: GraphSyncTargetType) -> None:
+        """Best-effort sync after approval. Disabled by default; failures are
+        swallowed so that approval semantics never depend on Neo4j health."""
+        if not get_settings().auto_graph_sync_on_approve:
+            return
+        try:
+            # Local import to avoid a hard dependency cycle at module import.
+            from app.services.graph_sync_service import GraphSyncService
+
+            svc = GraphSyncService(self.db)
+            if target_type == GraphSyncTargetType.ENTITY:
+                svc.sync_approved_entities()
+            else:
+                svc.sync_all()
+        except Exception as e:
+            logger.warning("auto graph sync skipped: %s", e)
 
     def _resolve_relation_endpoint(
         self,

@@ -250,6 +250,72 @@ curl 'http://localhost:8000/audit-logs/{audit_log_id}'
 
 각 row에 `before_json`, `after_json`, `metadata_json`이 들어있어 변경 이력 전체 추적 가능.
 
+### W3 실행 (Graph Sync + Subgraph 조회)
+
+#### 1) 마이그레이션 (0004 + Neo4j 제약)
+
+```bash
+docker compose exec app alembic upgrade head
+```
+
+앱 부팅 시 Neo4j 제약(`entity_id_unique`, `chunk_id_unique`)과 인덱스가 자동 생성됩니다.
+
+#### 2) 사전 조건
+
+W1/W2 시나리오로 다음 상태가 되어 있어야 합니다:
+- 문서 1건 + chunks INDEXED
+- 추출 완료 (PENDING entity/relation)
+- entity 일부 + relation 일부가 **APPROVED**
+
+#### 3) Sync 실행
+
+```bash
+curl -X POST 'http://localhost:8000/graph/sync'
+```
+
+응답:
+```json
+{
+  "entity_success": 3, "entity_failed": 0, "entity_skipped": 0,
+  "relation_success": 3, "relation_failed": 0, "relation_skipped": 0
+}
+```
+
+같은 요청 두 번째 호출은 기본적으로 SKIPPED (`graph_sync_log`에 SUCCESS 이력이 있으면). 재동기화는 `?force=true`.
+
+#### 4) Sync Log 확인
+
+```bash
+curl 'http://localhost:8000/graph/sync-logs'
+curl 'http://localhost:8000/graph/sync-logs?sync_status=FAILED'
+```
+
+#### 5) Graph 조회 (REST)
+
+```bash
+# Entity + 근거 chunk
+curl http://localhost:8000/graph/entities/FullCancelPolicy
+
+# Subgraph
+curl 'http://localhost:8000/graph/subgraph?seed=FullCancelPolicy&depth=2'
+```
+
+#### 6) Neo4j Browser 확인
+
+`http://localhost:7474` (neo4j / password)
+
+```cypher
+MATCH (e:Entity)-[:DEFINED_IN]->(c:DocumentChunk) RETURN e, c LIMIT 25;
+```
+
+```cypher
+MATCH p=(e:Entity {normalized_name: "FullCancelPolicy"})-[*1..2]-(n) RETURN p;
+```
+
+#### 7) 자동 sync (옵션)
+
+`.env`에 `AUTO_GRAPH_SYNC_ON_APPROVE=true` 설정 시 approve 직후 자동 sync 트리거. 실패해도 review는 항상 성공합니다 (best-effort).
+
 ### 5. 접속 정보
 
 | 서비스 | URL | 비고 |

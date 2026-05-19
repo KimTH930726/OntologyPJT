@@ -28,6 +28,9 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "chunks"
 
+    # Graph sync
+    auto_graph_sync_on_approve: bool = False
+
 
 @lru_cache
 def get_settings() -> Settings:
